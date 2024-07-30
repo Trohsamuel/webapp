@@ -12,31 +12,56 @@ pipeline {
         '''
       }
     }
-   stage('Check-Git-Secrets') {
+    stage('Check-Git-Secrets') {
       steps {
-        sh 'rm trufflehog || true'
+        sh 'rm -f trufflehog || true'
         sh 'docker run gesellix/trufflehog --json https://github.com/Trohsamuel/webapp.git > trufflehog'
         sh 'cat trufflehog'
       }
     }
-    stage('Source Composition Analysis'){
-       steps{
-         sh 'rm owasp* || true'
-         sh 'wget https://raw.githubusercontent.com/Trohsamuel/webapp/master/owasp-dependency-check.sh'
-         sh 'chmod +x owasp-dependency-check.sh'
-         sh 'bash owasp-dependency-check.sh'
-             }
-           }
-    stage('Build') {
+    stage('Source Composition Analysis') {
       steps {
-        sh 'mvn clean package'
+        script {
+          def owaspReport = '/var/lib/jenkins/OWASP-Dependency-Check/reports/dependency-check-report.xml'
+          if (!fileExists(owaspReport)) {
+            sh '''
+              rm owasp* || true
+              wget https://raw.githubusercontent.com/Trohsamuel/webapp/master/owasp-dependency-check.sh
+              chmod +x owasp-dependency-check.sh
+              bash owasp-dependency-check.sh
+              cat /var/lib/jenkins/OWASP-Dependency-Check/reports/dependency-check-report.xml
+            '''
+          } else {
+            echo "OWASP report already exists. Skipping Source Composition Analysis."
+          }
+        }
       }
     }
-
+    stage('Build') {
+      steps {
+        script {
+          def warFile = 'target/WebApp.war'
+          if (!fileExists(warFile)) {
+            sh 'mvn package'
+          } else {
+            echo "WAR file already exists. Skipping build."
+          }
+        }
+      }
+    }
     stage('Deploy-To-Tomcat') {
       steps {
-        sshagent(['tomcat']) {
-          sh 'scp -o StrictHostKeyChecking=no target/*.war ubuntu@13.60.162.14:/prod/apache-tomcat-9.0.91/webapps/webapp.war'
+        script {
+          def remoteWarFile = 'ubuntu@13.53.67.17:/prod/apache-tomcat-9.0.91/webapps/webapp.war'
+          def checkFileCommand = "ssh -o StrictHostKeyChecking=no ubuntu@13.53.67.17 'test -f /prod/apache-tomcat-9.0.91/webapps/webapp.war && echo exists || echo not exists'"
+          def fileExistsRemotely = sh(script: checkFileCommand, returnStdout: true).trim() == "exists"
+          if (!fileExistsRemotely) {
+            sshagent(['tomcat']) {
+              sh 'scp -o StrictHostKeyChecking=no target/*.war ubuntu@13.53.67.17:/prod/apache-tomcat-9.0.91/webapps/webapp.war'
+            }
+          } else {
+            echo "WAR file already exists on remote server. Skipping deployment."
+          }
         }
       }
     }
