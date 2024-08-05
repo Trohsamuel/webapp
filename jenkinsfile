@@ -52,12 +52,12 @@ pipeline {
     stage('Deploy-To-Tomcat') {
       steps {
         script {
-          def remoteWarFile = 'ubuntu@13.60.66.245:/prod/apache-tomcat-9.0.91/webapps/webapp.war'
-          def checkFileCommand = "ssh -o StrictHostKeyChecking=no ubuntu@13.60.66.245 'test -f /prod/apache-tomcat-9.0.91/webapps/webapp.war && echo exists || echo not exists'"
+          def remoteWarFile = 'ubuntu@13.60.156.172:/prod/apache-tomcat-9.0.91/webapps/webapp.war'
+          def checkFileCommand = "ssh -o StrictHostKeyChecking=no ubuntu@13.60.156.172 'test -f /prod/apache-tomcat-9.0.91/webapps/webapp.war && echo exists || echo not exists'"
           def fileExistsRemotely = sh(script: checkFileCommand, returnStdout: true).trim() == "exists"
           if (!fileExistsRemotely) {
             sshagent(['tomcat']) {
-              sh 'scp -o StrictHostKeyChecking=no target/*.war ubuntu@13.60.66.245:/prod/apache-tomcat-9.0.91/webapps/webapp.war'
+              sh 'scp -o StrictHostKeyChecking=no target/*.war ubuntu@13.60.156.172:/prod/apache-tomcat-9.0.91/webapps/webapp.war'
             }
           } else {
             echo "WAR file already exists on remote server. Skipping deployment."
