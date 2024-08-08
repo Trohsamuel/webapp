@@ -1,0 +1,46 @@
+pipeline {
+    agent any
+    tools {
+        maven 'Maven'
+    }
+    environment {
+        SONARQUBE_SCANNER_HOME = tool name: 'SonarQube Scanner', type: 'hudson.plugins.sonar.SonarRunnerInstallation'
+        GITHUB_REPO = 'https://github.com/Trohsamuel/webapp.git'
+        SONAR_HOST_URL = 'http://localhost:9000'
+        SONAR_PROJECT_KEY = 'webapp'
+        SONAR_LOGIN = 'sqa_8e3acb0d98f28f3ae515f690e801ea9434cfa2f8'
+    }
+    stages {
+        stage('Checkout') {
+            steps {
+                git url: "${env.GITHUB_REPO}"
+            }
+        }
+        stage('Build') {
+            steps {
+                sh 'mvn clean package || true'
+            }
+        }
+        stage('SonarQube analysis') {
+            environment {
+                SONARQUBE_SCANNER_PARAMS = '-Dsonar.projectKey=${SONAR_PROJECT_KEY} -Dsonar.sources=src -Dsonar.host.url=${SONAR_HOST_URL} -Dsonar.login=${SONAR_LOGIN}'
+            }
+            steps {
+                withSonarQubeEnv('SonarQube') {
+                    sh "${SONARQUBE_SCANNER_HOME}/bin/sonar-scanner ${SONARQUBE_SCANNER_PARAMS}"
+                }
+            }
+        }
+        stage('Quality Gate') {
+            steps {
+                waitForQualityGate abortPipeline: true
+            }
+        }
+    }
+    post {
+        always {
+            archiveArtifacts artifacts: '**/target/*.jar', allowEmptyArchive: true
+            junit '**/target/surefire-reports/*.xml'
+        }
+    }
+}
