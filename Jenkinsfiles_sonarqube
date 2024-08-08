@@ -6,7 +6,7 @@ pipeline {
     environment {
         SONARQUBE_SCANNER_HOME = tool name: 'SonarQube Scanner', type: 'hudson.plugins.sonar.SonarRunnerInstallation'
         GITHUB_REPO = 'https://github.com/Trohsamuel/webapp.git'
-        SONAR_HOST_URL = 'http://localhost:9000'
+        SONAR_HOST_URL = 'http:// 192.168.1.68:9000'
         SONAR_PROJECT_KEY = 'webapp'
         SONAR_LOGIN = 'sqa_8e3acb0d98f28f3ae515f690e801ea9434cfa2f8'
     }
