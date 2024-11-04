@@ -2,7 +2,7 @@ pipeline {
   agent any
   
   environment {
-    SONAR_TOKEN = credentials('sonar') // Token pour SonarQube
+    SONAR_TOKEN = credentials('sonar_token') // Utilisez 'sonar_token' comme nom du credential pour SonarQube
     SONARQUBE_URL = 'http://195.15.200.226:9000' // URL du serveur SonarQube
     PRODUCTION_SERVER = '195.15.207.39' // IP du serveur Tomcat
     SECURITY_SERVER = '188.213.128.116' // IP du serveur OWASP ZAP 
@@ -15,7 +15,7 @@ pipeline {
   stages {
     stage('SAST') {
       steps {
-        withSonarQubeEnv('sonarqube') {
+        withSonarQubeEnv('sonar_token') { // Utilisez 'sonar_token' pour se connecter à SonarQube
           sh '''
             mvn sonar:sonar \
               -Dsonar.projectKey=webapp \
