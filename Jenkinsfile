@@ -34,7 +34,7 @@ pipeline {
     
     stage('Deploy-To-Tomcat') {
       steps {
-        sshagent(['054d6250-dc24-4cb2-9fa3-baa3c332f955']) {
+        sshagent(['054d6250-dc24-4cb2-9fa3-baa3c332f955']) { // Identifiant Jenkins pour la connexion au serveur Tomcat
           sh 'scp -o StrictHostKeyChecking=no target/*.war debian@$PRODUCTION_SERVER:/opt/tomcat/webapps/webapp.war'
         }
       }
@@ -42,7 +42,7 @@ pipeline {
     
     stage('DAST') {
       steps {
-        sshagent(['security']) {
+        sshagent(['security']) { // Identifiant Jenkins pour la connexion au serveur ZAP
           sh '''
             ssh -o StrictHostKeyChecking=no debian@$SECURITY_SERVER \
               "zap.sh -daemon -port 8080 -host $PRODUCTION_SERVER -config api.disablekey=true \
