@@ -63,9 +63,11 @@ pipeline {
 
   post {
     always {
-      archiveArtifacts artifacts: 'zap_report.html', allowEmptyArchive: true
-      echo "Build ${currentBuild.fullDisplayName} completed with ${currentBuild.currentResult}."
-      cleanWs()
+      node { // Ajoute un contexte "node" pour garantir l'accès au système de fichiers
+        archiveArtifacts artifacts: 'zap_report.html', allowEmptyArchive: true
+        echo "Build ${currentBuild.fullDisplayName} completed with ${currentBuild.currentResult}."
+        cleanWs()
+      }
     }
   }
 }
