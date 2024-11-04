@@ -2,16 +2,16 @@ pipeline {
   agent any
   
   environment {
-    SONAR_TOKEN = credentials('sonarqube') // Token for SonarQube
-    SONARQUBE_URL = 'http://195.15.200.226:9000' // SonarQube server URL
-    PRODUCTION_SERVER = '195.15.207.39' // Tomcat server IP
-    SECURITY_SERVER = '188.213.128.116' // OWASP ZAP server IP
+    SONAR_TOKEN = credentials('sonar_token') // Jeton pour SonarQube
+    SONARQUBE_URL = 'http://195.15.200.226:9000' // URL de SonarQube
+    PRODUCTION_SERVER = '195.15.207.39' // IP du serveur Tomcat
+    SECURITY_SERVER = '188.213.128.116' // IP du serveur OWASP ZAP
   }
   
   tools {
-    maven 'Apache Maven 3.8.7'
+    maven 'Apache Maven 3.8.7' // Maven installé dans Jenkins
   }
-  
+
   stages {
     stage('Initialize') {
       steps {
@@ -21,57 +21,41 @@ pipeline {
         ''' 
       }
     }
-    
-    stage('Check-Git-Secrets') {
+
+    stage('SAST - SonarQube Analysis') {
       steps {
-        sh 'rm -f trufflehog || true'
-        sh 'docker run gesellix/trufflehog --json https://github.com/Trohsamuel/webapp.git > trufflehog'
-        sh 'cat trufflehog'
-      }
-    }
-    
-    stage('Source Composition Analysis') {
-      steps {
-        sh 'rm -f owasp* || true'
-        sh 'wget "https://raw.githubusercontent.com/Trohsamuel/webapp/master/owasp-dependency-check.sh"'
-        sh 'chmod +x owasp-dependency-check.sh'
-        sh 'bash owasp-dependency-check.sh'
-        sh 'cat /var/lib/jenkins/OWASP-Dependency-Check/reports/dependency-check-report.xml'
-      }
-    }
-    
-    stage('SAST') {
-      steps {
-        withSonarQubeEnv('sonarqube') {
+        sshagent(['sonarqube']) { // Utiliser les credentials pour SonarQube
           sh '''
             mvn sonar:sonar \
               -Dsonar.projectKey=webapp \
               -Dsonar.host.url=$SONARQUBE_URL \
               -Dsonar.login=$SONAR_TOKEN
           '''
-          sh 'cat target/sonar/report-task.txt'
         }
       }
     }
-    
+
     stage('Build') {
       steps {
         sh 'mvn clean package'
       }
     }
-    
-    stage('Deploy-To-Tomcat') {
+
+    stage('Deploy to Tomcat') {
       steps {
-        sshagent(['054d6250-dc24-4cb2-9fa3-baa3c332f955']) {
-          sh 'scp -o StrictHostKeyChecking=no target/*.war debian@195.15.207.39:/prod/apache-tomcat-9.0.96/webapps/webapp.war'
+        sshagent(['054d6250-dc24-4cb2-9fa3-baa3c332f955']) { // Clé SSH pour le serveur de production (Tomcat)
+          sh 'scp -o StrictHostKeyChecking=no target/*.war debian@$PRODUCTION_SERVER:/opt/tomcat/webapps/webapp.war'
         }
       }
     }
-    
-    stage('DAST') {
+
+    stage('DAST - OWASP ZAP Analysis') {
       steps {
-        sshagent(['security']) {
-          sh 'ssh -o StrictHostKeyChecking=no debian@188.213.128.116 "zap.sh -daemon -quickurl http://195.15.207.39:8080/webapp/ -quickout zap_report.html" || true'
+        sshagent(['security']) { // Clé SSH pour le serveur de sécurité (OWASP ZAP)
+          sh '''
+            ssh -o StrictHostKeyChecking=no debian@$SECURITY_SERVER \
+              "zap.sh -daemon -host $PRODUCTION_SERVER -port 8080 -t http://$PRODUCTION_SERVER:8080/webapp -r zap_report.html"
+          '''
         }
       }
     }
@@ -80,7 +64,7 @@ pipeline {
   post {
     always {
       archiveArtifacts artifacts: 'zap_report.html', allowEmptyArchive: true
-      echo "Build ${currentBuild.fullDisplayName} has ${currentBuild.currentResult}."
+      echo "Build ${currentBuild.fullDisplayName} completed with ${currentBuild.currentResult}."
       cleanWs()
     }
   }
