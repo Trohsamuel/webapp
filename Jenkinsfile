@@ -28,7 +28,7 @@ pipeline {
               -Dsonar.projectKey=webapp \
               -Dsonar.host.url=$SONARQUBE_URL \
               -Dsonar.login=$SONAR_TOKEN
-              -Dsonar.ws.timeout=60
+              -Dsonar.ws.timeout=600
               -X
           '''
         }
