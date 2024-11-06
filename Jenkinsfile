@@ -5,7 +5,7 @@ pipeline {
         // Définition des variables pour SonarQube et SSH
         SONARQUBE_URL = 'http://195.15.200.226:9000'
         SONAR_TOKEN = 'squ_24d84e105bcb5a38ea860b08ae3fe3b4b4ea4eef' // Nouveau token SonarQube
-        SSH_AGENT_TOMCAT = '054d6250-dc24-4cb2-9fa3-baa3c332f955'    // ID SSH pour le serveur Tomcat (195.15.207.39)
+        SSH_AGENT_TOMCAT = 'production'    // Utilisation de l'ID de credential 'production' pour le serveur Tomcat
         SSH_AGENT_SECURITY = 'DAST' // ID SSH pour le serveur Ubuntu où se trouvent JMeter et ZAP (188.213.130.79)
         TOMCAT_SERVER = '195.15.207.39'
         SECURITY_SERVER = '188.213.130.79'
@@ -50,9 +50,9 @@ pipeline {
 
         stage('Deploy to Tomcat') {
             steps {
-                sshagent(credentials: [production]) {
+                sshagent(credentials: [SSH_AGENT_TOMCAT]) {
                     sh '''
-                        scp target/${APP_NAME}.war debian@${TOMCAT_SERVER}:/opt/tomcat/webapps/
+                        scp target/${APP_NAME}.war ubuntu@${TOMCAT_SERVER}:/opt/tomcat/webapps/
                     '''
                 }
             }
