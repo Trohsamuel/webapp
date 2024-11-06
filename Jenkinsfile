@@ -50,7 +50,7 @@ pipeline {
 
         stage('Deploy to Tomcat') {
             steps {
-                sshagent(credentials: [SSH_AGENT_TOMCAT]) {
+                sshagent(credentials: [production]) {
                     sh '''
                         scp target/${APP_NAME}.war debian@${TOMCAT_SERVER}:/opt/tomcat/webapps/
                     '''
