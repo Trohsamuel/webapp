@@ -52,7 +52,7 @@ pipeline {
             steps {
                 sshagent(credentials: [SSH_AGENT_TOMCAT]) {
                     sh '''
-                        scp target/${APP_NAME}.war ubuntu@${TOMCAT_SERVER}:/opt/tomcat/webapps/
+                        scp target/${APP_NAME}.war debian@${TOMCAT_SERVER}:/opt/tomcat/webapps/
                     '''
                 }
             }
