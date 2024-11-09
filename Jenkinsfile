@@ -50,9 +50,9 @@ pipeline {
 
         stage('Deploy to Tomcat') {
             steps {
-                sshagent(credentials: [production]) {
+                sshagent(credentials: [SSH_AGENT_TOMCAT]) {
                     sh '''
-                        scp target/${APP_NAME}.war debian@${TOMCAT_SERVER}:/opt/tomcat/webapps/
+                        scp -o StrictHostKeyChecking=no target/${APP_NAME}.war debian@${TOMCAT_SERVER}:/opt/tomcat/webapps/
                     '''
                 }
             }
@@ -62,7 +62,7 @@ pipeline {
             steps {
                 sshagent(credentials: [SSH_AGENT_SECURITY]) {
                     sh '''
-                        ssh ubuntu@${SECURITY_SERVER} "jmeter -n -t /home/ubuntu/tests/${APP_NAME}_test_plan.jmx -l /home/ubuntu/rapport/jmeter_report.jtl -e -o /home/ubuntu/rapport/jmeter_report"
+                        ssh -o StrictHostKeyChecking=no ubuntu@${SECURITY_SERVER} "jmeter -n -t /home/ubuntu/tests/${APP_NAME}_test_plan.jmx -l /home/ubuntu/rapport/jmeter_report.jtl -e -o /home/ubuntu/rapport/jmeter_report"
                     '''
                 }
             }
@@ -72,7 +72,7 @@ pipeline {
             steps {
                 sshagent(credentials: [SSH_AGENT_SECURITY]) {
                     sh '''
-                        ssh ubuntu@${SECURITY_SERVER} "zap-cli quick-scan -r /home/ubuntu/rapport/zap_report.html http://${TOMCAT_SERVER}:8080/${APP_NAME}"
+                        ssh -o StrictHostKeyChecking=no ubuntu@${SECURITY_SERVER} "zap-cli quick-scan -r /home/ubuntu/rapport/zap_report.html http://${TOMCAT_SERVER}:8080/${APP_NAME}"
                     '''
                 }
             }
@@ -86,7 +86,7 @@ pipeline {
             // Suppression des fichiers de rapport sur le serveur pour éviter l'accumulation
             sshagent(credentials: [SSH_AGENT_SECURITY]) {
                 sh '''
-                    ssh ubuntu@${SECURITY_SERVER} "rm -rf /home/ubuntu/rapport/*"
+                    ssh -o StrictHostKeyChecking=no ubuntu@${SECURITY_SERVER} "rm -rf /home/ubuntu/rapport/*"
                 '''
             }
         }
